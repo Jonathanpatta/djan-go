@@ -3,9 +3,6 @@ package main
 import (
 	"fmt"
 	djan_go "github.com/Jonathanpatta/djan-go"
-	"github.com/gorilla/mux"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"net/http"
 )
 
@@ -16,22 +13,16 @@ type Product struct {
 	Price uint   `json:"price,omitempty"`
 }
 
-func (p Product) TestHttp(w http.ResponseWriter, r *http.Request) {
-
-	fmt.Println("struct test")
-
-}
-
 func main() {
 
 	//var data MyS[Product]
 	//
 	//fmt.Println(data.testy())
 
-	db, err := gorm.Open(sqlite.Open("./test.db"), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
+	//db, err := gorm.Open(sqlite.Open("./test.db"), &gorm.Config{})
+	//if err != nil {
+	//	panic("failed to connect database")
+	//}
 
 	// Migrate the schema
 	//db.AutoMigrate(&Product{})
@@ -73,19 +64,26 @@ func main() {
 	//	fmt.Println(err)
 	//}
 
-	router := mux.NewRouter()
-	router.StrictSlash(true)
+	//router := mux.NewRouter()
+	//router.StrictSlash(false)
 
-	httpmodel := djan_go.RegisterHttpModel(Product{}, db, "product")
+	c, err := djan_go.NewDefaultConfig()
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	fmt.Println(httpmodel.DataModel.List())
+	djan_go.RegisterHttpModel(Product{}, &djan_go.DataModelConfig{
+		Auth:         false,
+		EndPointName: "product",
+		GlobalConfig: c,
+	})
 
-	router.HandleFunc("/product/list", httpmodel.List).Methods("GET", "OPTIONS")
-	router.HandleFunc("/product", httpmodel.Post).Methods("POST", "OPTIONS")
-	router.HandleFunc("/product", httpmodel.Put).Methods("PUT", "OPTIONS")
-	router.HandleFunc("/product/{id}", httpmodel.Get).Methods("GET", "OPTIONS")
-	router.HandleFunc("/product/{id}", httpmodel.Delete).Methods("DELETE", "OPTIONS")
-	http.Handle("/", router)
+	//router.HandleFunc("/product/list", httpmodel.List).Methods("GET", "OPTIONS")
+	//router.HandleFunc("/product", httpmodel.Post).Methods("POST", "OPTIONS")
+	//router.HandleFunc("/product", httpmodel.Put).Methods("PUT", "OPTIONS")
+	//router.HandleFunc("/product/{id}", httpmodel.Get).Methods("GET", "OPTIONS")
+	//router.HandleFunc("/product/{id}", httpmodel.Delete).Methods("DELETE", "OPTIONS")
+	http.Handle("/", c.Router)
 
 	err = http.ListenAndServe(":8000", nil)
 	if err != nil {

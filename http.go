@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"gorm.io/gorm"
 	"net/http"
 )
 
@@ -13,11 +12,15 @@ type HttpModel[T any] struct {
 	DataModel    *DataModel[T]
 }
 
-func RegisterHttpModel[T any](data T, db *gorm.DB, epn string) *HttpModel[T] {
-	return &HttpModel[T]{
-		DataModel:    RegisterDataModel(data, db),
-		EndPointName: epn,
+func RegisterHttpModel[T any](data T, c *DataModelConfig) *HttpModel[T] {
+	httpmodel := &HttpModel[T]{
+		DataModel:    RegisterDataModel(data, c),
+		EndPointName: c.EndPointName,
 	}
+
+	AddHttpModelSubrouter(c.GlobalConfig.Router, c.EndPointName, httpmodel)
+
+	return httpmodel
 }
 
 func (d *HttpModel[T]) Get(w http.ResponseWriter, r *http.Request) {
@@ -127,4 +130,14 @@ func (d *HttpModel[T]) List(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func AddHttpModelSubrouter[T any](r *mux.Router, epn string, httpmodel *HttpModel[T]) {
+	router := r.PathPrefix("/api/" + epn).Subrouter()
+
+	router.HandleFunc("/list", httpmodel.List).Methods("GET", "OPTIONS")
+	router.HandleFunc("", httpmodel.Post).Methods("POST", "OPTIONS")
+	router.HandleFunc("", httpmodel.Put).Methods("PUT", "OPTIONS")
+	router.HandleFunc("/{id}", httpmodel.Get).Methods("GET", "OPTIONS")
+	router.HandleFunc("/{id}", httpmodel.Delete).Methods("DELETE", "OPTIONS")
 }

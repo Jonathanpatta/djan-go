@@ -12,12 +12,13 @@ type DataModel[T any] struct {
 	DataArray []T
 }
 
-func RegisterDataModel[T any](data T, db *gorm.DB) *DataModel[T] {
-	//db.AutoMigrate(&data)
-	//d := new(DataModel[T])
+func RegisterDataModel[T any](data T, c *DataModelConfig) *DataModel[T] {
+	if c.GlobalConfig.Debug {
+		c.GlobalConfig.GormDb.AutoMigrate(&data)
+	}
 	return &DataModel[T]{
 		Data: data,
-		Db:   db,
+		Db:   c.GlobalConfig.GormDb,
 	}
 }
 
