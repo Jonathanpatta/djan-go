@@ -23,8 +23,9 @@ func RegisterDataModel[T any](data T, c *DataModelConfig) *DataModel[T] {
 }
 
 func (d *DataModel[T]) Get(id string) (T, error) {
-	err := d.Db.First(&d.Data, id).Error
-	return d.Data, err
+	var data T
+	err := d.Db.First(&data, "id = ?", id).Error
+	return data, err
 }
 
 func (d *DataModel[T]) Post(data T) (T, error) {
@@ -46,7 +47,7 @@ func (d *DataModel[T]) Delete(id string) (T, error) {
 	if err != nil {
 		return data, err
 	}
-	err = d.Db.Delete(d.Data, "id = ?", id).Error
+	err = d.Db.Delete(&d.Data, "id = ?", id).Error
 	return data, err
 }
 

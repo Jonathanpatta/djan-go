@@ -73,7 +73,7 @@ func (d *HttpDataModel[T]) Put(w http.ResponseWriter, r *http.Request) {
 
 func (d *HttpDataModel[T]) Delete(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	data, err := d.DataModel.Get(id)
+	data, err := d.DataModel.Delete(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
