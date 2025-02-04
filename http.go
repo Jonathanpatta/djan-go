@@ -9,12 +9,28 @@ import (
 
 type HttpDataModel[T any] struct {
 	EndPointName string
-	DataModel    *DataModel[T]
+	DataModel    DataModel[T]
 }
 
-func RegisterHttpModel[T any](data T, c *DataModelConfig) (*HttpDataModel[T], error) {
+func RegisterDefaultHttpModel[T any](c *DataModelConfig) (*HttpDataModel[T], error) {
+	dm := NewGormDataModel[T](c)
 	httpDataModel := &HttpDataModel[T]{
-		DataModel:    RegisterDataModel(data, c),
+		DataModel:    dm,
+		EndPointName: c.EndPointName,
+	}
+
+	if c.EndPointName == "" {
+		panic("empty endpoint name")
+	}
+
+	AddHttpModelSubrouter(c.GlobalConfig.Router, c.EndPointName, httpDataModel)
+
+	return httpDataModel, nil
+}
+
+func RegisterHttpCustomModel[T any](data T, c *DataModelConfig, dataModel DataModel[T]) (*HttpDataModel[T], error) {
+	httpDataModel := &HttpDataModel[T]{
+		DataModel:    dataModel,
 		EndPointName: c.EndPointName,
 	}
 

@@ -1,3 +1,6 @@
 *.py
+*.zip
 *.db
 *.env
+.idea
+bootstrap
