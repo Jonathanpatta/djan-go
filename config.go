@@ -3,6 +3,7 @@ package djan_go
 import (
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/qor/roles"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -16,9 +17,8 @@ type Config struct {
 }
 
 type DataModelConfig struct {
-	Auth         bool
-	EndPointName string
 	GlobalConfig *Config
+	Permission   *roles.Permission
 }
 
 func NewDefaultConfig() (*Config, error) {
@@ -37,10 +37,6 @@ func NewDefaultConfig() (*Config, error) {
 }
 
 func NewGormConfig(db *gorm.DB) (*Config, error) {
-	//db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
-	//if err != nil {
-	//	panic("failed to connect database")
-	//}
 	router := mux.NewRouter()
 	router.Use(CorsMiddleware)
 	router.StrictSlash(false)

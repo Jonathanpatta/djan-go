@@ -4,41 +4,59 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/qor/roles"
 	"net/http"
 )
 
 type HttpDataModel[T any] struct {
-	EndPointName string
-	DataModel    DataModel[T]
+	EndPointName    string
+	DataModel       DataModel[T]
+	DataModelConfig *DataModelConfig
+	Auth            bool
+	Debug           bool
+	Permissions     *roles.Permission
+	GlobalConfig    *Config
 }
 
-func RegisterDefaultHttpModel[T any](c *DataModelConfig) (*HttpDataModel[T], error) {
-	dm := NewGormDataModel[T](c)
+func RegisterDefaultHttpModel[T any](h *HttpDataModel[T]) (*HttpDataModel[T], error) {
+	h.DataModelConfig = &DataModelConfig{
+		GlobalConfig: h.GlobalConfig,
+		Permission:   h.Permissions,
+	}
+	dm := NewGormDataModel[T](h.DataModelConfig)
 	httpDataModel := &HttpDataModel[T]{
-		DataModel:    dm,
-		EndPointName: c.EndPointName,
+		DataModel:       dm,
+		Auth:            h.Auth,
+		DataModelConfig: h.DataModelConfig,
+		EndPointName:    h.EndPointName,
+		Permissions:     h.Permissions,
+		Debug:           h.GlobalConfig.Debug || h.Debug,
 	}
 
-	if c.EndPointName == "" {
+	if h.EndPointName == "" {
 		panic("empty endpoint name")
 	}
 
-	AddHttpModelSubrouter(c.GlobalConfig.Router, c.EndPointName, httpDataModel)
+	AddHttpModelSubrouter(h.GlobalConfig.Router, h.EndPointName, httpDataModel)
 
 	return httpDataModel, nil
 }
 
-func RegisterHttpCustomModel[T any](data T, c *DataModelConfig, dataModel DataModel[T]) (*HttpDataModel[T], error) {
+func RegisterHttpCustomModel[T any](h *HttpDataModel[T]) (*HttpDataModel[T], error) {
 	httpDataModel := &HttpDataModel[T]{
-		DataModel:    dataModel,
-		EndPointName: c.EndPointName,
+		DataModel:       h.DataModel,
+		Auth:            h.Auth,
+		DataModelConfig: h.DataModelConfig,
+		EndPointName:    h.EndPointName,
+		Permissions:     h.Permissions,
+		Debug:           h.GlobalConfig.Debug || h.Debug,
 	}
 
-	if c.EndPointName == "" {
+	if h.EndPointName == "" {
 		panic("empty endpoint name")
 	}
 
-	AddHttpModelSubrouter(c.GlobalConfig.Router, c.EndPointName, httpDataModel)
+	AddHttpModelSubrouter(h.GlobalConfig.Router, h.EndPointName, httpDataModel)
 
 	return httpDataModel, nil
 }
@@ -124,7 +142,11 @@ func HttpOutput(w http.ResponseWriter, v interface{}) {
 
 func AddHttpModelSubrouter[T any](r *mux.Router, epn string, httpmodel *HttpDataModel[T]) {
 	router := r.PathPrefix("/api/" + epn).Subrouter()
-
+	//fmt.Println(r)
+	//fmt.Println(router)
+	if !httpmodel.Debug && httpmodel.Auth {
+		router.Use(httpmodel.JWTMiddleware)
+	}
 	router.HandleFunc("/list", httpmodel.List).Methods("GET", "OPTIONS")
 	router.HandleFunc("", httpmodel.Post).Methods("POST", "OPTIONS")
 	router.HandleFunc("", httpmodel.Put).Methods("PUT", "OPTIONS")

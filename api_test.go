@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/joho/godotenv"
+	"github.com/qor/roles"
 	"io"
 	"log"
 	"net/http"
@@ -32,20 +33,23 @@ func TestHttpApi(t *testing.T) {
 	}
 
 	pgurl := os.Getenv("PGURL")
-	fmt.Println(pgurl)
 	c, err := NewPostgresConfig(pgurl)
 	if err != nil {
 		fmt.Println(err)
 	}
+	c.Debug = false
 
-	RegisterDefaultHttpModel[Product](&DataModelConfig{
+	RegisterDefaultHttpModel[Product](&HttpDataModel[Product]{
 		EndPointName: "product",
 		GlobalConfig: c,
+		Permissions:  roles.Allow(roles.CRUD, "admin"),
+		Auth:         true,
 	})
 
-	RegisterDefaultHttpModel[Person](&DataModelConfig{
+	RegisterDefaultHttpModel[Person](&HttpDataModel[Person]{
 		EndPointName: "person",
 		GlobalConfig: c,
+		Permissions:  roles.Allow(roles.CRUD, "admin"),
 	})
 
 	http.Handle("/", c.Router)
@@ -56,9 +60,9 @@ func TestHttpApi(t *testing.T) {
 	}
 }
 
-func TestProduct(t *testing.T) {
+func TestPostProduct(t *testing.T) {
 	jsonData, err := json.Marshal(Product{
-		Id:    "test5",
+		Id:    "testa",
 		Code:  "asdfzzx",
 		Price: 234234,
 	})
@@ -79,6 +83,41 @@ func TestProduct(t *testing.T) {
 
 	// Set the appropriate headers
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.isofekPz6EkwTlQeFsFQJ9-7r6WPdB5MEGILg8FTEfU")
+
+	// Send the request using http.DefaultClient
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Error sending request: %v\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	bodyString := string(body)
+
+	// Print the response status
+	fmt.Printf("Response status: %s\n", resp.Status)
+
+	fmt.Printf("Response body: %s\n", bodyString)
+}
+
+func TestListProduct(t *testing.T) {
+
+	// Define the URL for the POST request
+	url := "http://localhost:8000/api/product/list"
+
+	// Create a new POST request with the JSON as the body
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		return
+	}
+
+	// Set the appropriate headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.isofekPz6EkwTlQeFsFQJ9-7r6WPdB5MEGILg8FTEfU")
 
 	// Send the request using http.DefaultClient
 	client := &http.Client{}
